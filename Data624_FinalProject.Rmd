@@ -1,0 +1,15 @@
+---
+title: "Final Project"
+author: "Hector Santana, Harris Dupre, Christopher Ayre"
+date: "5/9/2022"
+output: html_document
+---
+
+```{r}
+
+
+studenttrainingdata = read.csv('https://github.com/manonfire86/Data624FinalProject/blob/main/StudentData.csv')
+
+studenttestdata = read.csv('https://github.com/manonfire86/Data624FinalProject/blob/main/StudentEvaluation.csv')
+
+```
