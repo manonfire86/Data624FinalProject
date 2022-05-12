@@ -1,0 +1,136 @@
+ ---
+title: "DATA 624 Project 2"
+author: "Christopher Ayre"
+date: "May 15, 2022"
+output:
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, error = TRUE)
+options("scipen" = 10)
+```
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE, cache=FALSE}
+
+library(readxl)         
+library(ggplot2)
+library(corrplot)
+library(RColorBrewer)
+library(dplyr)  
+library(tidyr)
+library(parallel)
+```
+
+**Project 2**
+
+# ASSIGNMENT
+
+__This is role playing.  I am your new boss.  I am in charge of production at ABC Beverage and you are a team of data scientists reporting to me.  My leadership has told me that new regulations are requiring us to understand our manufacturing process, the predictive factors and be able to report to them our predictive model of PH.__
+
+__Please use the historical data set I am providing.  Build and report the factors in BOTH a technical and non-technical report.  I like to use Word and Excel.  Please provide your non-technical report in a  business friendly readable document and your predictions in an Excel readable format.   The technical report should show clearly the models you tested and how you selected your final approach.__
+
+__TRAINING DATA ..... StudentData.xlsx__
+__TEST DATA ......... StudentEvaluation.xlsx__
+
+
+```{r}
+# Importing data, removing empty column
+
+sd_data <- read_excel('StudentData.xlsx')
+se_data <- read_excel('StudentEvaluation.xlsx')
+
+```
+
+
+```{r}
+#Exploring the data
+colnames(sd_data)
+
+str(sd_data)
+
+head(sd_data)
+
+```
+
+```{r}
+sd_data <- sd_data %>% 
+  filter(!is.na(sd_data$PH), sd_data$PH < 9) 
+```
+
+
+
+```{r, fig.height = 10, fig.width = 10, echo=FALSE}
+# Prepare data for Histogram
+gather_df <- sd_data %>% 
+  drop_na() %>%
+  dplyr::select(-c(PH, `Brand Code`)) %>%
+  gather(key = 'variable', value = 'value')
+
+# Histogram plots of each variable
+ggplot(gather_df) + 
+  geom_histogram(aes(x=value, y = ..density..), bins=30) + 
+  geom_density(aes(x=value), color='blue') +
+  facet_wrap(. ~variable, scales='free', ncol=4)
+```
+
+```{r, fig.height = 10, fig.width = 10, echo=FALSE}
+# Prepare data for Boxplot
+gather_df <- sd_data %>% 
+  dplyr::select(-c(PH, `Brand Code`)) %>%
+  tidyr::drop_na() %>%
+  gather(key = 'variable', value = 'value')
+
+# Boxplots for each variable
+gather_df %>% ggplot() + 
+  geom_boxplot(aes(x=variable, y=value)) + 
+  facet_wrap(. ~variable, scales='free', ncol=6)
+```
+
+```{r, fig.height = 10, fig.width = 10, echo=FALSE}
+#Feature-Target Correlation
+df_features <- sd_data %>% 
+  dplyr::select(-c(PH, `Brand Code`))
+df_features$PH <- sd_data$PH
+df_features <- df_features %>%
+  drop_na
+feature_count <- ncol(df_features) - 1
+
+
+# Show feature correlations/target by decreasing correlation
+stack(sort(cor(df_features[, feature_count + 1], df_features[,1:feature_count])[,], 
+           decreasing=TRUE))
+```
+
+__Features with the highest and lowest correlations have the most predictive power.__
+
+__`Bowl Setpoint`, `Filler Level`, `Carb Flow`, `Pressure Vacuum`, and `Carb Rel` have the highest correlations (positive) with `PH`, while `Mnf Flow`, `Usage cont`, `Fill Pressure`, `Pressure Setpoint`, and `Hyd Pressure3` have the strongest negative correlations with `PH`.__
+
+
+
+Checking for multicollinearity by looking at correlations between all predictors.
+We'll need to consider the correlations between features and avoid including pairs with strong correlations.
+
+```{r echo=FALSE, fig.height=8, fig.width=10}
+# Calculate and plot the Multicollinearity
+df_features <- sd_data %>%
+  dplyr::select(-c(`Brand Code`))
+correlation = cor(df_features, use = 'pairwise.complete.obs')
+corrplot(correlation, 'ellipse', type = 'lower', order = 'hclust',
+         col=brewer.pal(n=8, name="RdYlBu"))
+```
+
+
+
+near zero-variance - Features that are the same across most of the instances will add little predictive information.
+
+```{r}
+# Near-Zero Variance
+
+nzv <- nearZeroVar(sd_data, saveMetrics= TRUE)
+nzv[nzv$nzv,][1:5,] %>% drop_na()
+```
+`Hyd Pressure1` displays near-zero variance. We can drop this feature
+
+
