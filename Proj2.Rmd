@@ -1,0 +1,73 @@
+---
+title: "DATA 624 Project 2"
+date: "5/7/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE, message=FALSE, error=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(MASS)
+library(tidyverse)
+library(ggplot2)
+library(corrplot)
+library(mice)
+library(VIM)
+library(caret)
+```
+
+### Load Data and Pre Process
+
+
+```{r}
+training_raw <- read.csv("https://raw.githubusercontent.com/manonfire86/Data624FinalProject/main/StudentData.csv", header = TRUE)
+test_raw <- read.csv("https://raw.githubusercontent.com/manonfire86/Data624FinalProject/main/StudentEvaluation.csv", header = TRUE)
+
+train_df <- data.frame(training_raw)
+test_df <- data.frame(test_raw)
+
+head(train_df)
+summary(train_df)
+```
+
+We have 33 variables including the target variable PH. Missing values are present in the majority of columns. We need to  pre-process and visualize the data.
+
+```{r}
+# Visualize missing data
+mice_plot <- aggr(train_df, col=c('navyblue','yellow'),
+                    numbers=TRUE, sortVars=TRUE,
+                    labels=names(train_df), cex.axis=.7,
+                    gap=3, ylab=c("Missing data","Pattern"))
+
+```
+
+We can see that the variable MFR has over 8% missing. Imptutation will be necessary on all the variables with missing data.
+
+
+```{r}
+ggplot(gather(subset(train_df,select=-c(PH,`Brand.Code`))), aes(value)) + 
+    geom_histogram() +
+    theme(axis.text.x = element_blank(), axis.text.y = element_blank(), axis.ticks = element_blank()) +
+    facet_wrap(~key, scales = 'free')
+```
+
+Histograms of our numerical variables (Brand.Code is a character variable). We can see that some are roughly normally distributed, some are skewed, and some don't really follow any sort of distribution. We could potentially transform some of these variables in the data preparation step.
+
+```{r}
+train_corr <- subset(train_df,select=-c(PH,`Brand.Code`)) %>%
+  drop_na() %>%
+  cor()
+
+
+corrplot(train_corr)
+```
+
+We can see some quite significant positive and negative correlations in these variables. Let's remove near zero variance variables, scale and center the data, and impute missing variables.
+
+
+```{r}
+nzv <- nearZeroVar(train_df, saveMetrics= TRUE)
+
+
+```
+
