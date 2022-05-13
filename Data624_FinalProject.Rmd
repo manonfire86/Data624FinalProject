@@ -5,11 +5,199 @@ date: "5/9/2022"
 output: html_document
 ---
 
-```{r}
+Our initial step is to import the relevant libraries containing the requisite models of this analysis.
+
+```{r libraries}
+
+library(mlbench)
+library(randomForest)
+library(caret)
+library(party)
+library(Cubist)
+library(dplyr)
+library(rpart.plot)
+library(kernlab)
+library(earth)
+library(nnet)
+library(DataExplorer)
+library(RANN)
+library(corrplot)
+pacman::p_load(tidyverse,janitor,DataExplorer,knitr,arsenal,kableExtra,car,geoR,caret,
+               psych,gridExtra,DMwR2,lmtest,pscl,MKmisc,ROCR,survey,stats,rstatix,Rcpp,
+               corrplot,forecast,cowplot)
+
+library(mice)
 
 
-studenttrainingdata = read.csv('https://github.com/manonfire86/Data624FinalProject/blob/main/StudentData.csv')
-
-studenttestdata = read.csv('https://github.com/manonfire86/Data624FinalProject/blob/main/StudentEvaluation.csv')
 
 ```
+
+To create ease around the data importation process we converted the excel files into CSV and stored them in a GitHub repository.
+
+```{r Importation}
+
+
+studenttrainingdata = read.csv('https://raw.githubusercontent.com/manonfire86/Data624FinalProject/main/StudentData.csv')
+
+studenttestdata = read.csv('https://raw.githubusercontent.com/manonfire86/Data624FinalProject/main/StudentEvaluation.csv')
+
+```
+
+The below exploratory analysis indicates that missing values are fairly low. For our model to be robust and dynamic we will impute missing data, filter out correlations, near zero variables, scale the data, and center the data in our preprocess methodology.
+
+
+
+```{r}
+str(studenttrainingdata)
+```
+
+```{r}
+summary(studenttrainingdata)
+```
+
+```{r}
+dim(studenttrainingdata)
+```
+
+
+```{r dataexploration}
+
+plot_missing(studenttrainingdata)
+plot_histogram(studenttrainingdata)
+plot_density(studenttrainingdata)
+plot_boxplot(
+  data = studenttrainingdata,
+  by = "PH")
+
+
+
+```
+
+
+
+
+```{r datatransformation}
+
+set.seed(100)
+
+preprocess_data_model = preProcess(studenttrainingdata, c("center", "scale", "knnImpute", "corr", "nzv"))
+new_dataset = predict(preprocess_data_model,studenttrainingdata)
+
+
+
+
+
+```
+
+We will now split our data into a training and validation to analyze model outputs.
+
+```{r validation}
+
+training_partition = createDataPartition(new_dataset$PH,p=.8,list=FALSE)
+
+training_df = new_dataset[training_partition,]
+validation_df = new_dataset[-training_partition,]
+
+
+```
+
+
+We will now build models using various linear, nonlinear, and tree based approaches.
+
+# Linear Models
+
+##Ordinary Least Regression
+
+```{r models}
+
+olrmod = train(PH~.,data = training_df,method='lm',trControl=trainControl('cv',number=10))
+
+olrpred = predict(olrmod,validation_df)
+olrpred_results = postResample(pred = olrpred, obs = validation_df$PH)
+
+
+```
+
+##Partial Least Squares
+
+```{r model2}
+
+pls_mod = train(PH~.,data = training_df,method='pls',trControl=trainControl('cv',number=10),center=T,tunelength=20)
+
+plot(pls_mod)
+
+plspred = predict(pls_mod,validation_df)
+plspred_results = postResample(pred = plspred, obs = validation_df$PH)
+
+
+```
+
+
+#Ridge Regression
+
+
+```{r model3}
+set.seed(100)
+
+rrfit = train(PH~.,data=training_df,method='ridge',tuneGrid=data.frame(.lambda=seq(0,.1,length=15)),trControl=trainControl('cv',number=10))
+
+plot(rrfit)
+
+rrpred = predict(rrfit,validation_df)
+rrpred_results = postResample(pred = rrpred, obs = validation_df$PH)
+
+
+```
+
+
+
+
+
+
+##Non Linear Models
+
+#Neural Networks
+
+```{r model4}
+
+set.seed(100)
+nnetmod = train(PH~.,data=training_df,
+                  method = "avNNet",
+                  preProc = c("center", "scale"),
+                  tuneGrid = expand.grid( .decay = c(0, 0.01, .1), .size = c(1:10), .bag= F ),
+                  trControl = trainControl(method = "cv",number = 10),
+                  linout = T,
+                  trace= F,
+                  MaxNWts = 5 * (ncol(training_df) + 1) + 5 + 1,
+                  maxit = 500)
+
+nnetpred = predict(nnetmod,validation_df)
+nnetpred_results = postResample(pred = nnetpred, obs = validation_df$PH)
+
+
+```
+
+
+
+#MARS
+
+```{r model5}
+
+set.seed(100)
+marsmod = train(PH~.,data=training_df,method='earth',trControl=trainControl(method='cv'))
+
+marspred = predict(marsmod,validation_df)
+marspred_results = postResample(pred = marspred, obs = validation_df$PH)
+
+
+```
+
+
+
+#SVM
+
+
+
+
+
+#KNN
