@@ -61,6 +61,20 @@ dim(studenttrainingdata)
 
 
 ```{r dataexploration}
+df_features <- studenttrainingdata %>%
+  dplyr::select(-c(`Brand.Code`))
+
+correlation = cor(df_features, use = 'pairwise.complete.obs')
+corrplot(correlation, 'ellipse', type = 'lower', order = 'hclust',
+         col=brewer.pal(n=8, name="RdYlBu"))
+
+mice_plot <- aggr(studenttrainingdata, col=c('navyblue','yellow'),
+                    numbers=TRUE, sortVars=TRUE,
+                    labels=names(studenttrainingdata), cex.axis=.7,
+                    gap=3, ylab=c("Missing data","Pattern"))
+
+
+
 
 plot_missing(studenttrainingdata)
 plot_histogram(studenttrainingdata)
@@ -80,11 +94,9 @@ plot_boxplot(
 
 set.seed(100)
 
+studentrainingdata <- studenttrainingdata[complete.cases(studenttrainingdata$PH),]
 preprocess_data_model = preProcess(studenttrainingdata, c("center", "scale", "knnImpute", "corr", "nzv"))
 new_dataset = predict(preprocess_data_model,studenttrainingdata)
-
-
-
 
 
 ```
@@ -195,9 +207,53 @@ marspred_results = postResample(pred = marspred, obs = validation_df$PH)
 
 
 #SVM
+```{r model6}
+set.seed(100)
+svmmod = train(PH~., data = training_df,
+               method= "svmLinear",
+               trControl = trainControl(method = "repeatedcv",number = 10, repeats=3),
+               tuneLength = 10)
+
+svmpred = predict(svmmod,validation_df)
+svmpred_results = postResample(pred = svmpred, obs = validation_df$PH)
 
 
-
+```
 
 
 #KNN
+
+
+```{r model7}
+
+set.seed(100)
+knnmod = train(PH~., data = training_df,
+               method= "knn",
+               trControl = trainControl(method = "repeatedcv",number = 10, repeats=3),
+               tuneLength = 10)
+
+knnpred = predict(knnmod,validation_df)
+knnpred_results = postResample(pred = knnpred, obs = validation_df$PH)
+
+```
+
+## Display Model Results
+
+```{r}
+titles <- list("OLR","PLS","RR","NNet","MARS","SVM","KNN")
+results <- list(olrpred_results,plspred_results,rrpred_results,nnetpred_results,marspred_results,svmpred_results,knnpred_results)
+
+df = NULL
+for (x in 1:length(results)) {
+  Model = titles[[x]]
+  RMSE = unname(results[[x]]["RMSE"])
+  Rsquared = unname(results[[x]]["Rsquared"])
+  MAE = unname(results[[x]]["MAE"])
+    
+  df = rbind(df,data.frame(Model,RMSE,Rsquared,MAE))
+}
+
+df[order(df$Rsquared,decreasing=FALSE),]
+
+knitr::kable(df[order(df$Rsquared,decreasing=FALSE),], digits=4, row.names=F)
+```
