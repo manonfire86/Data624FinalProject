@@ -253,7 +253,5 @@ for (x in 1:length(results)) {
   df = rbind(df,data.frame(Model,RMSE,Rsquared,MAE))
 }
 
-df[order(df$Rsquared,decreasing=FALSE),]
-
 knitr::kable(df[order(df$Rsquared,decreasing=FALSE),], digits=4, row.names=F)
 ```
