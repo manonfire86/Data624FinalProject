@@ -27,8 +27,8 @@ pacman::p_load(tidyverse,janitor,DataExplorer,knitr,arsenal,kableExtra,car,geoR,
                corrplot,forecast,cowplot)
 
 library(mice)
-
-
+library(RColorBrewer)
+library(VIM)
 
 ```
 
@@ -62,7 +62,7 @@ dim(studenttrainingdata)
 
 ```{r dataexploration}
 df_features <- studenttrainingdata %>%
-  dplyr::select(-c(`Brand.Code`))
+  dplyr::select(-c(`ï..Brand.Code`))
 
 correlation = cor(df_features, use = 'pairwise.complete.obs')
 corrplot(correlation, 'ellipse', type = 'lower', order = 'hclust',
@@ -237,11 +237,63 @@ knnpred_results = postResample(pred = knnpred, obs = validation_df$PH)
 
 ```
 
+
+##Trees
+
+#Random Forest
+
+```{r model8}
+
+
+randomforest_model = train(PH~.,data=training_df,method='rf',
+                       preProcess = c('center', 'scale'),trControl=trainControl('cv'))
+
+randomforest_pred = predict(randomforest_model, validation_df)
+randomforest_results = postResample(pred = randomforest_pred, obs = validation_df$PH)
+
+
+```
+
+#Boosted Trees
+
+```{r model9}
+
+
+gbm_model = train(PH~.,data=training_df,method='gbm',tuneGrid=expand.grid(.interaction.depth = seq(1, 7, by = 2),
+                        .n.trees = seq(100, 1000, by = 100),
+                        .shrinkage = c(0.01, 0.1),
+                        .n.minobsinnode = 8),
+                       trControl=trainControl('cv'))
+
+gbm_pred = predict(gbm_model, validation_df)
+gbm_results = postResample(pred = gbm_pred, obs = validation_df$PH)
+
+
+
+```
+
+#Cubist
+
+```{r model10}
+
+
+cub_model = train(PH~.,data=training_df,method='cubist',
+                       preProcess = c('center', 'scale'),trControl=trainControl('cv'))
+
+cub_pred = predict(cub_model, validation_df)
+cub_results = postResample(pred = cub_pred, obs = validation_df$PH)
+
+
+
+```
+
+#Single Tree
+
 ## Display Model Results
 
 ```{r}
-titles <- list("OLR","PLS","RR","NNet","MARS","SVM","KNN")
-results <- list(olrpred_results,plspred_results,rrpred_results,nnetpred_results,marspred_results,svmpred_results,knnpred_results)
+titles <- list("OLR","PLS","RR","NNet","MARS","SVM","KNN","Random Forest","Boosted Model")
+results <- list(olrpred_results,plspred_results,rrpred_results,nnetpred_results,marspred_results,svmpred_results,knnpred_results,randomforest_results,gbm_results)
 
 df = NULL
 for (x in 1:length(results)) {
