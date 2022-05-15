@@ -7,7 +7,7 @@ output: html_document
 
 Our initial step is to import the relevant libraries containing the requisite models of this analysis.
 
-```{r libraries}
+```{r libraries, message=FALSE, warning=FALSE}
 
 library(mlbench)
 library(randomForest)
@@ -62,11 +62,11 @@ dim(studenttrainingdata)
 
 ```{r dataexploration}
 df_features <- studenttrainingdata %>%
-  dplyr::select(-c(`ï..Brand.Code`))
+  dplyr::select(-c(`Brand.Code`))
 
 correlation = cor(df_features, use = 'pairwise.complete.obs')
 corrplot(correlation, 'ellipse', type = 'lower', order = 'hclust',
-         col=brewer.pal(n=8, name="RdYlBu"))
+         col=brewer.pal(n=8, name="RdYlBu"), tl.cex=0.5)
 
 mice_plot <- aggr(studenttrainingdata, col=c('navyblue','yellow'),
                     numbers=TRUE, sortVars=TRUE,
@@ -118,9 +118,9 @@ We will now build models using various linear, nonlinear, and tree based approac
 
 # Linear Models
 
-##Ordinary Least Regression
+## Ordinary Least Regression
 
-```{r models}
+```{r models, echo = T, results = 'hide'}
 
 olrmod = train(PH~.,data = training_df,method='lm',trControl=trainControl('cv',number=10))
 
@@ -130,9 +130,9 @@ olrpred_results = postResample(pred = olrpred, obs = validation_df$PH)
 
 ```
 
-##Partial Least Squares
+## Partial Least Squares
 
-```{r model2}
+```{r model2, echo = T, results = 'hide'}
 
 pls_mod = train(PH~.,data = training_df,method='pls',trControl=trainControl('cv',number=10),center=T,tunelength=20)
 
@@ -145,10 +145,10 @@ plspred_results = postResample(pred = plspred, obs = validation_df$PH)
 ```
 
 
-#Ridge Regression
+# Ridge Regression
 
 
-```{r model3}
+```{r model3, echo = T, results = 'hide'}
 set.seed(100)
 
 rrfit = train(PH~.,data=training_df,method='ridge',tuneGrid=data.frame(.lambda=seq(0,.1,length=15)),trControl=trainControl('cv',number=10))
@@ -166,11 +166,11 @@ rrpred_results = postResample(pred = rrpred, obs = validation_df$PH)
 
 
 
-##Non Linear Models
+## Non Linear Models
 
-#Neural Networks
+# Neural Networks
 
-```{r model4}
+```{r model4, echo = T, results = 'hide', warning=FALSE}
 
 set.seed(100)
 nnetmod = train(PH~.,data=training_df,
@@ -191,9 +191,9 @@ nnetpred_results = postResample(pred = nnetpred, obs = validation_df$PH)
 
 
 
-#MARS
+# MARS
 
-```{r model5}
+```{r model5, echo = T, results = 'hide'}
 
 set.seed(100)
 marsmod = train(PH~.,data=training_df,method='earth',trControl=trainControl(method='cv'))
@@ -206,8 +206,8 @@ marspred_results = postResample(pred = marspred, obs = validation_df$PH)
 
 
 
-#SVM
-```{r model6}
+# SVM
+```{r model6, echo = T, results = 'hide'}
 set.seed(100)
 svmmod = train(PH~., data = training_df,
                method= "svmLinear",
@@ -221,10 +221,10 @@ svmpred_results = postResample(pred = svmpred, obs = validation_df$PH)
 ```
 
 
-#KNN
+# KNN
 
 
-```{r model7}
+```{r model7, echo = T, results = 'hide'}
 
 set.seed(100)
 knnmod = train(PH~., data = training_df,
@@ -238,11 +238,11 @@ knnpred_results = postResample(pred = knnpred, obs = validation_df$PH)
 ```
 
 
-##Trees
+## Trees
 
-#Random Forest
+# Random Forest
 
-```{r model8}
+```{r model8, echo = T, results = 'hide'}
 
 
 randomforest_model = train(PH~.,data=training_df,method='rf',
@@ -254,9 +254,9 @@ randomforest_results = postResample(pred = randomforest_pred, obs = validation_d
 
 ```
 
-#Boosted Trees
+# Boosted Trees
 
-```{r model9}
+```{r model9, echo = T, results = 'hide'}
 
 
 gbm_model = train(PH~.,data=training_df,method='gbm',tuneGrid=expand.grid(.interaction.depth = seq(1, 7, by = 2),
@@ -272,9 +272,9 @@ gbm_results = postResample(pred = gbm_pred, obs = validation_df$PH)
 
 ```
 
-#Cubist
+# Cubist
 
-```{r model10}
+```{r model10, echo = T, results = 'hide'}
 
 
 cub_model = train(PH~.,data=training_df,method='cubist',
@@ -287,10 +287,10 @@ cub_results = postResample(pred = cub_pred, obs = validation_df$PH)
 
 ```
 
-#Single Tree
+# Single Tree
 
 
-```{r model11}
+```{r model11, echo = T, results = 'hide'}
 
 
 rp_model = train(PH~.,data=training_df,method='rpart2',
@@ -304,10 +304,10 @@ plot(rp_model)
 
 ```
 
-#GLMNET
+# GLMNET
 
 
-```{r model12}
+```{r model12, echo = T, results = 'hide'}
 
 
 glm_model = train(PH~.,data=training_df,method='glmnet',
@@ -322,9 +322,9 @@ plot(glm_model)
 ```
 
 
-#PCR
+# PCR
 
-```{r model13}
+```{r model13, echo = T, results = 'hide'}
 
 
 pcr_model = train(PH~.,data=training_df,method='pcr',
@@ -356,7 +356,7 @@ for (x in 1:length(results)) {
   df = rbind(df,data.frame(Model,RMSE,Rsquared,MAE))
 }
 
-knitr::kable(df[order(df$Rsquared,decreasing=FALSE),], digits=4, row.names=F)
+knitr::kable(df[order(df$Rsquared,decreasing=TRUE),], digits=4, row.names=F)
 ```
 
 
@@ -390,10 +390,6 @@ ggplot(data=cub_var_imp$importance,aes(x=reorder(rownames(cub_var_imp$importance
 # Predictions
 
 ```{r forecast}
-
-
-
-
 #studenteval_scaled = preProcess(studenttestdata, c("center", "scale","corr", "nzv"))
 #studenteval_scaled_dataset = predict(studenteval_scaled,studenttestdata)
 eval_cub_pred = predict(cub_model, studenttestdata)
