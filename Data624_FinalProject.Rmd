@@ -29,6 +29,7 @@ pacman::p_load(tidyverse,janitor,DataExplorer,knitr,arsenal,kableExtra,car,geoR,
 library(mice)
 library(RColorBrewer)
 library(VIM)
+library(openxlsx)
 
 ```
 
@@ -43,8 +44,7 @@ studenttestdata = read.csv('https://raw.githubusercontent.com/manonfire86/Data62
 
 ```
 
-The below exploratory analysis indicates that missing values are fairly low. For our model to be robust and dynamic we will impute missing data, filter out correlations, near zero variables, scale the data, and center the data in our preprocess methodology.
-
+The below exploratory analysis indicates that missing values are fairly low. For our model to be robust and dynamic we will impute missing data, filter out correlations, near zero variables, scale the data, and center the data in our preprocess methodology.This will remove collinearity, remove skew, normalize distributions, scale the data, and remove non significant variables.
 
 
 ```{r}
@@ -101,7 +101,7 @@ new_dataset = predict(preprocess_data_model,studenttrainingdata)
 
 ```
 
-We will now split our data into a training and validation to analyze model outputs.
+We will now split our data into a training set and validation set to analyze model outputs. Given the evaluation set we will need to verify our model analytics using RMSE, R^2, and MAE prior to running our predictions. Obtaining a model with a combination of the lowest RMSE, highest R^2, and lowest MAE will be optimal.
 
 ```{r validation}
 
@@ -338,7 +338,9 @@ plot(pcr_model)
 
 ```
 
-## Display Model Results
+## Evaluation
+
+Aggregating the model results we see our cubist model performs the best among the 13 selected model types. The multi node linear model tree based methodology accounts best for the various intricacies of the data set. There is of course the risk of over fitting, however the cubist model we discerned to be best fit in this scenario.
 
 ```{r}
 titles <- list("OLR","PLS","RR","NNet","MARS","SVM","KNN","Random Forest","Boosted Model","Cubist","RPart","GLMNET","PCR")
@@ -355,4 +357,43 @@ for (x in 1:length(results)) {
 }
 
 knitr::kable(df[order(df$Rsquared,decreasing=FALSE),], digits=4, row.names=F)
+```
+
+
+```{r evaluation}
+
+ggplot(data=df,aes(x=Model,y=RMSE)) +geom_bar(stat='identity',aes(fill=Model))+ coord_flip()
+
+ggplot(data=df,aes(x=Model,y=Rsquared)) +geom_bar(stat='identity',aes(fill=Model))+ coord_flip()
+
+ggplot(data=df,aes(x=Model,y=MAE)) +geom_bar(stat='identity',aes(fill=Model))+ coord_flip()
+
+
+
+```
+
+# Variable Importance
+
+Using the cubist model we can discern how variables are weighted for predictor 'PH'. Mnf.Flow is the most significant variable in the model. 
+
+```{r varimp}
+
+cub_var_imp = varImp(cub_model)
+
+ggplot(data=cub_var_imp$importance,aes(x=reorder(rownames(cub_var_imp$importance), Overall),y=Overall)) +geom_bar(stat='identity',aes(fill=rownames(cub_var_imp$importance)))+ coord_flip() +theme(legend.position = "none") + labs(x='Variables')
+
+
+
+```
+
+
+# Predictions
+
+```{r forecast}
+
+eval_cub_pred = predict(cub_model, studenttestdata)
+eval_df = data.frame(eval_cub_pred)
+write.xlsx(eval_df, 'FinalProject_Predictions.xlsx')
+
+
 ```
