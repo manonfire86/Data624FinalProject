@@ -2,7 +2,9 @@
 title: "Final Project"
 author: "Hector Santana, Harris Dupre, Christopher Ayre"
 date: "5/9/2022"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 Our initial step is to import the relevant libraries containing the requisite models of this analysis.
@@ -62,7 +64,7 @@ dim(studenttrainingdata)
 
 ```{r dataexploration}
 df_features <- studenttrainingdata %>%
-  dplyr::select(-c(`Brand.Code`))
+  dplyr::select(-c(`ï..Brand.Code`))
 
 correlation = cor(df_features, use = 'pairwise.complete.obs')
 corrplot(correlation, 'ellipse', type = 'lower', order = 'hclust',
