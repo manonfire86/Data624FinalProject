@@ -73,9 +73,9 @@ mice_plot <- aggr(studenttrainingdata, col=c('navyblue','yellow'),
                     labels=names(studenttrainingdata), cex.axis=.7,
                     gap=3, ylab=c("Missing data","Pattern"))
 
+```
 
-
-
+```{r}
 plot_missing(studenttrainingdata)
 plot_histogram(studenttrainingdata)
 plot_density(studenttrainingdata)
@@ -289,11 +289,60 @@ cub_results = postResample(pred = cub_pred, obs = validation_df$PH)
 
 #Single Tree
 
+
+```{r model11}
+
+
+rp_model = train(PH~.,data=training_df,method='rpart2',
+                       preProcess = c('center', 'scale'),trControl=trainControl('cv'))
+
+rp_pred = predict(rp_model, validation_df)
+rp_results = postResample(pred = rp_pred, obs = validation_df$PH)
+
+plot(rp_model)
+
+
+```
+
+#GLMNET
+
+
+```{r model12}
+
+
+glm_model = train(PH~.,data=training_df,method='glmnet',
+                       preProcess = c('center', 'scale'),trControl=trainControl('cv'))
+
+glm_pred = predict(glm_model, validation_df)
+glm_results = postResample(pred = glm_pred, obs = validation_df$PH)
+
+
+plot(glm_model)
+
+```
+
+
+#PCR
+
+```{r model13}
+
+
+pcr_model = train(PH~.,data=training_df,method='pcr',
+                       preProcess = c('center', 'scale'),trControl=trainControl('cv'))
+
+pcr_pred = predict(pcr_model, validation_df)
+pcr_results = postResample(pred = pcr_pred, obs = validation_df$PH)
+
+
+plot(pcr_model)
+
+```
+
 ## Display Model Results
 
 ```{r}
-titles <- list("OLR","PLS","RR","NNet","MARS","SVM","KNN","Random Forest","Boosted Model")
-results <- list(olrpred_results,plspred_results,rrpred_results,nnetpred_results,marspred_results,svmpred_results,knnpred_results,randomforest_results,gbm_results)
+titles <- list("OLR","PLS","RR","NNet","MARS","SVM","KNN","Random Forest","Boosted Model","Cubist","RPart","GLMNET","PCR")
+results <- list(olrpred_results,plspred_results,rrpred_results,nnetpred_results,marspred_results,svmpred_results,knnpred_results,randomforest_results,gbm_results,cub_results,rp_results,glm_results,pcr_results)
 
 df = NULL
 for (x in 1:length(results)) {
