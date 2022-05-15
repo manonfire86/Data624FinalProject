@@ -391,9 +391,16 @@ ggplot(data=cub_var_imp$importance,aes(x=reorder(rownames(cub_var_imp$importance
 
 ```{r forecast}
 
-eval_cub_pred = predict(cub_model, studenttestdata)
-eval_df = data.frame(eval_cub_pred)
-write.xlsx(eval_df, 'FinalProject_Predictions.xlsx')
 
+
+
+studenteval_scaled = preProcess(studenttestdata, c("center", "scale","corr", "nzv"))
+studenteval_scaled_dataset = predict(studenteval_scaled,studenttestdata)
+eval_cub_pred = predict(cub_model, studenteval_scaled_dataset)
+scaled_ph = scale(studenttrainingdata$PH, center= TRUE, scale=TRUE)
+scaledeval_predictions = eval_cub_pred * attr(scaled_ph, 'scaled:scale') +   attr(scaled_ph, 'scaled:center')
+eval_df = data.frame(scaledeval_predictions)
+#write.xlsx(eval_df, 'FinalProject_Predictions.xlsx')
+eval_df
 
 ```
